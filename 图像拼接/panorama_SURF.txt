@@ -1,0 +1,52 @@
+#include<opencv2/opencv.hpp>
+#include<opencv2/features2d/features2d.hpp>
+#include<opencv2/imgproc/imgproc_c.h>
+#include<opencv2/nonfree/nonfree.hpp>
+#include<stdio.h>
+#include<opencv2/core/core.hpp>
+using namespace cv;
+using namespace std;
+
+int main()
+{
+	// Load image from file
+	IplImage *pLeftImage = cvLoadImage("a1.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+	IplImage *pRightImage = cvLoadImage("a2.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+
+	// Convert IplImage to cv::Mat
+	Mat matLeftImage = Mat(pLeftImage, false); // Do not copy
+	Mat matRightImage = Mat(pRightImage, false);
+
+	// Key point and its descriptor
+	vector<KeyPoint> LeftKey;
+	vector<KeyPoint> RightKey;
+	Mat LeftDescriptor;
+	Mat RightDescriptor;
+	vector<DMatch> Matches;
+
+	// Detect key points from image
+	FeatureDetector *pDetector = new SurfFeatureDetector; // 这里我们用了SURF特征点
+	pDetector->detect(matLeftImage, LeftKey);
+	pDetector->detect(matRightImage, RightKey);
+	delete pDetector;
+
+	// Extract descriptors
+	DescriptorExtractor *pExtractor = new SurfDescriptorExtractor; // 提取SURF描述向量
+	pExtractor->compute(matLeftImage, LeftKey, LeftDescriptor);
+	pExtractor->compute(matRightImage, RightKey, RightDescriptor);
+	delete pExtractor;
+
+	// Matching features
+	DescriptorMatcher *pMatcher = new FlannBasedMatcher; // 使用Flann匹配算法
+	pMatcher->match(LeftDescriptor, RightDescriptor, Matches);
+	delete pMatcher;
+
+	// Show result
+	Mat OutImage;
+	drawMatches(matLeftImage, LeftKey, matRightImage, RightKey, Matches, OutImage);
+	cvNamedWindow("Match features", 1);
+	cvShowImage("Match features", &(IplImage(OutImage)));
+	cvWaitKey(0);
+	cvDestroyWindow("Match features");
+
+}
